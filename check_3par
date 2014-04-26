@@ -3,6 +3,7 @@
 # 3PAR Nagios check script v0.2
 # Last update 2010/05/14 fredl@3par.com
 # Last update 2011/03/03 ddu@antemeta.fr
+# Last update 2014/04/25 kzishikawa07@gmail.com
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
