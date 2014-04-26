@@ -45,6 +45,10 @@
 #                       >= $PCWARNINGNL ->      Warning
 #                       >= $PCCRITICALNL ->     Critical
 #
+#	check_cap_ssd : Check used NL capacity 
+#                       >= $PCWARNINGNL ->      Warning
+#                       >= $PCCRITICALNL ->     Critical
+#
 #	check_ps : Check Power Supply Node and Cage
 #                       Degraded ->     	Warning
 #                       Failed ->       	Critical
