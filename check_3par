@@ -71,11 +71,12 @@ PCCRITICALNL=90
 PCWARNINGNL=80
 
 # To connect using the 3PAR CLI, uncomment the following line
-#CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
+## CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
+CONNECTCOMMAND="/opt/3PAR/inform_cli_3.1.2/bin/cli -sys $INSERV -pwf $USERNAME"
 # Note : connecting using the CLI requires creating password files (.pwf)
 
 # To connect using SSH. uncomment the following line
-CONNECTCOMMAND="ssh $USERNAME@$INSERV"
+# CONNECTCOMMAND="ssh $USERNAME@$INSERV"
 # Note : connecting using SSH requires setting public key authentication
 
 
@@ -256,7 +257,7 @@ then
                 echo Could not connect to InServ $INSERV
                 exit 3
         fi
-	grep -v -i iscsi $TMPDIR/3par_$COMMAND.$INSERV.out1 | grep -v -i rcip > $TMPDIR/3par_$COMMAND.$INSERV.out
+	grep -v -i iscsi $TMPDIR/3par_$COMMAND.$INSERV.out1 | grep -v -i rcip | grep -v -i free > $TMPDIR/3par_$COMMAND.$INSERV.out
 	rm -f $TMPDIR/3par_$COMMAND.$INSERV.out1
 
         if [ `grep -c -i error $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
@@ -278,6 +279,35 @@ then
         fi
 fi
 
+if [ $COMMAND == "check_port_iscsi" ]
+then
+        $CONNECTCOMMAND showport -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out1
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+	grep -v -i fc $TMPDIR/3par_$COMMAND.$INSERV.out1 | grep -v -i rcip | grep -i -v free > $TMPDIR/3par_$COMMAND.$INSERV.out
+	rm -f $TMPDIR/3par_$COMMAND.$INSERV.out1
+
+        if [ `grep -c -i error $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
+        then
+                echo CRITICAL! Some ports are in the error state
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                exit 2
+        else
+                if [ `grep -c -i loss_sync $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] || [ `grep -c -i config_wait $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] || [ `grep -c -i login_wait $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] || [ `grep -c -i non_participate $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
+                then
+                        echo WARNING! Some ports are in an abnormal state \(loss_sync, config_wait, login_wait or non_participate\)
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                        exit 1
+                else
+                        echo OK : All ISCSI ports have normal status \(ready or offline\)
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                        exit 0
+                fi
+        fi
+fi
 
 
 if [ $COMMAND == "check_cap_fc" ]
@@ -359,3 +389,41 @@ then
         fi
 fi
 
+if [ $COMMAND == "check_cap_ssd" ]
+then
+        $CONNECTCOMMAND showpd -p -devtype SSD -showcols Size_MB,Free_MB -csvtable > $TMPDIR/3par_$COMMAND.$INSERV.out
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+
+        if [ `tail -1 $TMPDIR/3par_$COMMAND.$INSERV.out` = "No PDs listed" ]
+        then
+                echo No SSD disks
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+		exit 0
+        fi
+
+        TOTCAPNL=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f1`
+        FREECAPNL=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f2`
+        USEDCAPPCNL=`expr 100 \- \( \( $FREECAPNL \* 100 \) \/ $TOTCAPNL \)`
+
+        if [ $USEDCAPPCNL -ge $PCCRITICALNL ]
+        then
+                echo CRITICAL! Used SSD capacity = $USEDCAPPCNL\% \( \> $PCCRITICALNL\% \)
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+		exit 2
+        else
+                if [ $USEDCAPPCNL -ge $PCWARNINGNL ]
+                then
+                        echo WARNING! Used SSD capacity = $USEDCAPPCNL\% \( \> $PCWARNINGNL\% \)
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+			exit 1
+                else
+                        echo OK : Used SSD capacity = $USEDCAPPCNL\%
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+			exit 0
+                fi
+        fi
+fi
