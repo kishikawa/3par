@@ -4,6 +4,8 @@
 # Last update 2010/05/14 fredl@3par.com
 # Last update 2011/03/03 ddu@antemeta.fr
 # Last update 2014/04/25 kzishikawa07@gmail.com
+# 	Support : InForm3.1.2,check_ssd
+# Last update 2014/05/01 kzishikawa07@gmail.com
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
@@ -46,7 +48,7 @@
 #                       >= $PCWARNINGNL ->      Warning
 #                       >= $PCCRITICALNL ->     Critical
 #
-#	check_cap_ssd : Check used NL capacity 
+#	check_cap_ssd : Check used SSD capacity 
 #                       >= $PCWARNINGNL ->      Warning
 #                       >= $PCCRITICALNL ->     Critical
 #
@@ -54,6 +56,10 @@
 #                       Degraded ->     	Warning
 #                       Failed ->       	Critical
 #
+#	check_qos : Check QOS Rules
+#			off ->			Warning
+#
+			
 
 if [ "$1" == "" ] || [ $2 == "" ] || [ $3 == "" ]
 then
@@ -109,7 +115,6 @@ then
 		fi
 	fi
 fi
-
 
 if [ $COMMAND == "check_node" ]
 then
@@ -219,7 +224,6 @@ then
                 fi
         fi
 fi
-
 
 if [ $COMMAND == "check_ld" ]
 then
@@ -402,28 +406,56 @@ then
         then
                 echo No SSD disks
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                exit 0
+        fi
+
+        TOTCAPSSD=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f1`
+        FREECAPSSD=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f2`
+        USEDCAPPCSSD=`expr 100 \- \( \( $FREECAPSSD \* 100 \) \/ $TOTCAPSSD \)`
+
+        if [ $USEDCAPPCSSD -ge $PCCRITICALSSD ]
+        then
+                echo CRITICAL! Used SSD capacity = $USEDCAPPCSSD\% \( \> $PCCRITICALSSD\% \)
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                exit 2
+        else
+                if [ $USEDCAPPCSSD -ge $PCWARNINGSSD ]
+                then
+                        echo WARNING! Used SSD capacity = $USEDCAPPCSSD\% \( \> $PCWARNINGSSD\% \)
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                        exit 1
+                else
+                        echo OK : Used SSD capacity = $USEDCAPPCSSD\%
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                        exit 0
+                fi
+        fi
+fi
+
+if [ $COMMAND == "check_qos" ]
+then
+        $CONNECTCOMMAND showqos -nohdtot -csvtable > $TMPDIR/3par_$COMMAND.$INSERV.out
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+
+        if [ `tail -1 $TMPDIR/3par_$COMMAND.$INSERV.out` = "No QOS Rules listed" ]
+        then
+                echo No QOS Rules 
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 0
         fi
 
-        TOTCAPNL=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f1`
-        FREECAPNL=`cat ${TMPDIR}/3par_${COMMAND}.${INSERV}.out | tail -1 | cut -d, -f2`
-        USEDCAPPCNL=`expr 100 \- \( \( $FREECAPNL \* 100 \) \/ $TOTCAPNL \)`
-
-        if [ $USEDCAPPCNL -ge $PCCRITICALNL ]
-        then
-                echo CRITICAL! Used SSD capacity = $USEDCAPPCNL\% \( \> $PCCRITICALNL\% \)
-                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-		exit 2
-        else
-                if [ $USEDCAPPCNL -ge $PCWARNINGNL ]
-                then
-                        echo WARNING! Used SSD capacity = $USEDCAPPCNL\% \( \> $PCWARNINGNL\% \)
-                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			exit 1
-                else
-                        echo OK : Used SSD capacity = $USEDCAPPCNL\%
-                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			exit 0
-                fi
-        fi
+	if [ `grep -c -i off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
+	then
+		echo WARNING! There are Disable QOS Rules Contact 3PAR support
+		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+		exit 1
+	else
+		echo OK : All QOS Rules are Enable
+		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+		exit 0
+	fi
 fi
