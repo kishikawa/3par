@@ -487,7 +487,8 @@ then
 	TOTALIOPS=`cat $TMPDIR/3par_$COMMAND.$INSERV.out | awk -F "," '{ sum += $5 } END { print sum }'`
 	MAXIOPS=550000
 #	USEDCAPPCIOPS=`expr 100 \- \( \( $MAXIOPS \* 100 \) \/ $TOTALIOPS \)`
-	USEDCAPPCIOPS=`expr \( $TOTALIOPS \/ $MAXIOPS \) \* 100`
+#	USEDCAPPCIOPS=`expr \( $TOTALIOPS \/ $MAXIOPS \) \* 100`
+	USEDCAPPCIOPS=`(echo "scale=3; ($TOTALIOPS/$MAXIOPS)*100" | bc)`
 
 	if [ $USEDCAPPCIOPS -ge $PCCRITICALIOPS ]
 	then
