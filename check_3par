@@ -5,6 +5,7 @@
 # Last update 2011/03/03 ddu@antemeta.fr
 # Last update 2014/04/25 kzishikawa07@gmail.com Support InForm3.1.2 & Add check_ssd
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
+# Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
@@ -48,16 +49,19 @@
 #                       >= $PCCRITICALNL ->     Critical
 #
 #	check_cap_ssd : Check used SSD capacity 
-#                       >= $PCWARNINGNL ->      Warning
-#                       >= $PCCRITICALNL ->     Critical
+#                       >= $PCWARNINGSSD ->      Warning
+#                       >= $PCCRITICALSSD ->     Critical
 #
 #	check_ps : Check Power Supply Node and Cage
-#                       Degraded ->     	Warning
-#                       Failed ->       	Critical
+#                        Degraded ->     	Warning
+#                        Failed ->       	Critical
 #
 #	check_qos : Check QOS Rules
-#			off ->			Warning
+#		 	off ->			Warning
 #
+#	check_cap_iops : Check used IOPS capacity
+#                       >= $PCWARNINGIOPS ->      Warning
+#                       >= $PCCRITICALIOPS ->     Critical
 			
 
 if [ "$1" == "" ] || [ $2 == "" ] || [ $3 == "" ]
@@ -73,13 +77,10 @@ TMPDIR=/tmp
 
 PCCRITICALFC=90
 PCWARNINGFC=80
-
 PCCRITICALNL=90
 PCWARNINGNL=80
-
 PCCRITICALSSD=90
 PCWARNINGSSD=80
-
 PCCRITICALIOPS=90
 PCWARNINGIOPS=80
 
