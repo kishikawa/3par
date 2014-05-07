@@ -70,10 +70,18 @@ INSERV=$1
 USERNAME=$2
 COMMAND=$3
 TMPDIR=/tmp
+
 PCCRITICALFC=90
 PCWARNINGFC=80
+
 PCCRITICALNL=90
 PCWARNINGNL=80
+
+PCCRITICALSSD=90
+PCWARNINGSSD=80
+
+PCCRITICALIOPS=90
+PCWARNINGIOPS=80
 
 # To connect using the 3PAR CLI, uncomment the following line
 ## CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
@@ -456,5 +464,47 @@ then
 		echo OK : All QOS Rules are Enable
 		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 0
+	fi
+fi
+
+if [ $COMMAND == "check_cap_iops" ]
+then
+	$CONNECTCOMMAND showqos -nohdtot -csvtable > $TMPDIR/3par_$COMMAND.$INSERV.out
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+
+        if [ `tail -1 $TMPDIR/3par_$COMMAND.$INSERV.out` = "No QOS Rules listed" ]
+        then
+                echo No QOS Rules
+        #       rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                exit 0
+        fi
+
+	TOTALIOPS=`cat $TMPDIR/3par_$COMMAND.$INSERV.out | awk -F "," '{ sum += $5 } END { print sum }'`
+	MAXIOPS=550000
+#	USEDCAPPCIOPS=`expr 100 \- \( \( $MAXIOPS \* 100 \) \/ $TOTALIOPS \)`
+	USEDCAPPCIOPS=`expr \( $TOTALIOPS \/ $MAXIOPS \) \* 100`
+
+	if [ $USEDCAPPCIOPS -ge $PCCRITICALIOPS ]
+	then
+		echo CRITICAL! Used IOPS capacity = $USEDCAPPCIOPS\% \( \> $PCCRITICALIOPS\% \)
+		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+		exit 2
+	else
+	
+		if [ $USEDCAPPCIOPS -ge $PCWARNINGIOPS ]
+		then
+			echo WARNING! Used IOPS capacity $USEDCAPPCIOPS\% \( \> $PCWARNINGIOPS\% \)
+			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+			exit 1
+
+		else
+			echo OK : Used IOPS capacity $USEDCAPPCIOPS\%
+			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+			exit 0
+		fi
 	fi
 fi
