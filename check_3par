@@ -456,7 +456,7 @@ then
 		exit 0
         fi
 
-	if [ `grep -c -i off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
+	if [ `grep -c off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
 	then
 		echo WARNING! There are Disable QOS Rules Contact 3PAR support
 		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
