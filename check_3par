@@ -6,6 +6,7 @@
 # Last update 2014/04/25 kzishikawa07@gmail.com Support InForm3.1.2 & Add check_ssd
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
 # Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
+# Last update 2015/05/07 tokaji.attila@gmail.com Split the check_ps to check_node_ps and check_cage_ps
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
@@ -52,7 +53,11 @@
 #                       >= $PCWARNINGSSD ->      Warning
 #                       >= $PCCRITICALSSD ->     Critical
 #
-#	check_ps : Check Power Supply Node and Cage
+#	check_node_ps : Check Power Supply Node
+#                        Degraded ->     	Warning
+#                        Failed ->       	Critical
+#
+#	check_cage_ps : Check Power Supply Cage
 #                        Degraded ->     	Warning
 #                        Failed ->       	Critical
 #
@@ -152,55 +157,58 @@ then
         fi
 fi
 
-if [ $COMMAND == "check_ps" ]
+if [ $COMMAND == "check_node_ps" ]
 then
-	$CONNECTCOMMAND shownode -ps -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out
+        $CONNECTCOMMAND shownode -ps -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out
         if [ $? -gt 0 ]
         then
                 echo Could not connect to InServ $INSERV
-                RC=3
+                exit 3
         fi
 
         if [ `grep -c -i failed $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
         then
                 echo CRITICAL! The following nodes have abnormal status : `grep -i failed $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-		RC=2
+                exit 2
         else
                 if [ `grep -c -i degraded $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
                 then
                         echo WARNING! The following nodes have abnormal status : `grep -i degraded $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			RC=1
+                        exit 1
                 else
                         echo OK : All nodes have normal status
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			RC=0
+                        exit 0
                 fi
         fi
+fi
 
-	$CONNECTCOMMAND  showcage -d > $TMPDIR/3par_$COMMAND.$INSERV.out
-	if [ $? -gt 0 ]
+if [ $COMMAND == "check_cage_ps" ]
+then
+        $CONNECTCOMMAND  showcage -d > $TMPDIR/3par_$COMMAND.$INSERV.out
+        if [ $? -gt 0 ]
         then
                 echo Could not connect to InServ $INSERV
-                RC=3
+                exit 3
         fi
 
         if [ `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Failed") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out|wc -l` -gt 0 ]
         then
                 echo CRITICAL! The following cages have abnormal status : `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Failed") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-		RC=2
+                exit 2
         else
                 if [ `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Degraded") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out|wc -l` -gt 0 ]
                 then
                         echo WARNING! The following cages have abnormal status : `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Degraded") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			RC=1
+                        exit 1
                 else
-                        echo OK : All nodes have normal status
+                        echo OK : All cages have normal status
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			RC=0
+                        exit 0
                 fi
         fi
 fi
