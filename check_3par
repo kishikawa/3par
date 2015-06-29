@@ -500,7 +500,7 @@ then
                  echo "VV:$line are Enabled VV Set's and QoS" >/dev/null 2>&1
 
              else
-                 echo "VV:$line Disabled VV Set and Qos"
+                 echo "WARNING! VV:$line Disabled VV Set and Qos"
            fi
 
         done < $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
