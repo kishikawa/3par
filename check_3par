@@ -7,6 +7,7 @@
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
 # Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
 # Last update 2015/05/07 tokaji.attila@gmail.com Split the check_ps to check_node_ps and check_cage_ps
+# Last update 2014/06/26 kzishikawa07@gmail.com Add check_qos_cfg
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
@@ -63,6 +64,9 @@
 #
 #	check_qos : Check QOS Rules
 #		 	off ->			Warning
+#
+#       check_qos_cfg : Check QOS Config
+#                       off ->                  Warning
 #
 #	check_cap_iops : Check used IOPS capacity
 #                       >= $PCWARNINGIOPS ->      Warning
@@ -475,6 +479,34 @@ then
 		exit 0
 	fi
 fi
+
+if [$COMMAND == "check_qos_cfg" ]
+then
+
+        $CONNECTCOMMAND showqos -nohdtot -csvtable > $TMPDIR/3par_vvset_$COMMAND.$INSERV.out
+        $CONNECTCOMMAND showvv -nohdtot -csvtable > $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
+
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+
+        while read line
+         do
+          egrep  $line $TMPDIR/3par_vvset_$COMMAND.$INSERV.out >> a.txt
+            if [ `echo $?` -eq 0 ]
+             then
+                 echo "VV:$line are Enabled VV Set's and QoS" >/dev/null 2>&1
+
+             else
+                 echo "VV:$line Disabled VV Set and Qos"
+           fi
+
+        done < $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
+
+rm -f $TMPDIR/3par_vvset_$COMMAND.$INSERV.out
+rm -f $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
 
 if [ $COMMAND == "check_cap_iops" ]
 then
