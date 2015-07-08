@@ -484,6 +484,38 @@ then
 	fi
 fi
 
+if [ $COMMAND == "check_qos_cfg" ]
+
+ng_vv=vvset-config-error-`date +"%Y-%m%d-%H"`.out
+volume_list=vvlist-`date +"%Y-%m%d-%H"`.out
+vvset_list=vvsetlist-`date +"%Y-%m%d-%H"`.out
+
+then
+
+	$CONNECTCOMMAND showvvset -nohdtot -csvtable | awk -F "," '{print $3}' | sort > $TMPDIR/$vvset_list 
+	$CONNECTCOMMAND showvv -nohdtot -csvtable | egrep "tpvv,base" | awk -F "," '{print $2}' | sort > $TMPDIR/$volume_list
+
+	if [ $? -gt 0 ]
+	then
+		echo Could not connect to InServ $INSERV
+		exit 3
+	fi
+
+	diff $TMPDIR/$volume_list $TMPDIR/$vvset_list | grep "osv-"  | sed 's/<//g' > $TMPDIR/$ng_vv
+
+	if [ -s $TMPDIR/$ng_vv ]
+	then
+		while read line 
+			do
+			echo "WARNING! VV:$line Disabled VV Set"
+			done < $TMPDIR/$ng_vv
+			exit 1
+	else
+		echo "All VVs are Enabled VV Set"
+		exit 0
+	fi
+fi
+
 if [ $COMMAND == "check_cap_iops" ]
 then
 	$CONNECTCOMMAND showqos -nohdtot -csvtable > $TMPDIR/3par_$COMMAND.$INSERV.out
@@ -529,37 +561,5 @@ then
 			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 			exit 0
 		fi
-	fi
-fi
-
-if [ $COMMAND == "check_qos_cfg" ]
-
-ng_vv=vvset-config-error-`date +"%Y-%m%d-%H"`.out
-volume_list=vvlist-`date +"%Y-%m%d-%H"`.out
-vvset_list=vvsetlist-`date +"%Y-%m%d-%H"`.out
-
-then
-
-	$CONNECTCOMMAND showvvset -nohdtot -csvtable | awk -F "," '{print $3}' | sort > $TMPDIR/$vvset_list 
-	$CONNECTCOMMAND showvv -nohdtot -csvtable | egrep "tpvv,base" | awk -F "," '{print $2}' | sort > $TMPDIR/$volume_list
-
-	if [ $? -gt 0 ]
-	then
-		echo Could not connect to InServ $INSERV
-		exit 3
-	fi
-
-	diff $TMPDIR/$volume_list $TMPDIR/$vvset_list | grep "osv-"  | sed 's/<//g' > $TMPDIR/$ng_vv
-
-	if [ -s $TMPDIR/$ng_vv ]
-	then
-		while read line 
-			do
-			echo "WARNING! VV:$line Disabled VV Set"
-			done < $TMPDIR/$ng_vv
-			exit 1
-	else
-		echo "All VVs are Enabled VV Set"
-		exit 0
 	fi
 fi
