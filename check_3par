@@ -6,8 +6,10 @@
 # Last update 2014/04/25 kzishikawa07@gmail.com Support InForm3.1.2 & Add check_ssd
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
 # Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
-# Last update 2015/05/07 tokaji.attila@gmail.com Split the check_ps to check_node_ps and check_cage_ps
-# Last update 2014/06/26 kzishikawa07@gmail.com Add check_qos_cfg
+# Last update 2014/07/08 kzishikawa07@gmail.com Update check_qos_cfg check_node_ps check_cag_ps 
+#			 fork check_ps
+#			             |-check_node_ps
+#			             |-check_cage_ps
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
@@ -54,19 +56,19 @@
 #                       >= $PCWARNINGSSD ->      Warning
 #                       >= $PCCRITICALSSD ->     Critical
 #
-#	check_node_ps : Check Power Supply Node
+#	check_node_ps : Check Power Supply Node and Cage
 #                        Degraded ->     	Warning
 #                        Failed ->       	Critical
 #
-#	check_cage_ps : Check Power Supply Cage
+#	check_cag_ps : Check Power Supply Node and Cage
 #                        Degraded ->     	Warning
 #                        Failed ->       	Critical
 #
 #	check_qos : Check QOS Rules
 #		 	off ->			Warning
 #
-#       check_qos_cfg : Check QOS Config
-#                       off ->                  Warning
+#	check_qos_cfg : Check QOS_Cfg 
+#		 	off ->			Warning
 #
 #	check_cap_iops : Check used IOPS capacity
 #                       >= $PCWARNINGIOPS ->      Warning
@@ -91,7 +93,8 @@ PCWARNINGNL=80
 PCCRITICALSSD=90
 PCWARNINGSSD=80
 PCCRITICALIOPS=90
-PCWARNINGIOPS=80
+PCWARNINGIOPS=70
+
 
 # To connect using the 3PAR CLI, uncomment the following line
 ## CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
@@ -163,36 +166,36 @@ fi
 
 if [ $COMMAND == "check_node_ps" ]
 then
-        $CONNECTCOMMAND shownode -ps -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out
+	$CONNECTCOMMAND shownode -ps -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out
         if [ $? -gt 0 ]
         then
                 echo Could not connect to InServ $INSERV
-                exit 3
+                exit 3 
         fi
 
         if [ `grep -c -i failed $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
         then
                 echo CRITICAL! The following nodes have abnormal status : `grep -i failed $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                exit 2
+		exit 2
         else
                 if [ `grep -c -i degraded $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
                 then
                         echo WARNING! The following nodes have abnormal status : `grep -i degraded $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                        exit 1
+			exit 1	
                 else
                         echo OK : All nodes have normal status
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                        exit 0
+			exit 0
                 fi
         fi
 fi
 
 if [ $COMMAND == "check_cage_ps" ]
 then
-        $CONNECTCOMMAND  showcage -d > $TMPDIR/3par_$COMMAND.$INSERV.out
-        if [ $? -gt 0 ]
+	$CONNECTCOMMAND  showcage -d > $TMPDIR/3par_$COMMAND.$INSERV.out
+	if [ $? -gt 0 ]
         then
                 echo Could not connect to InServ $INSERV
                 exit 3
@@ -202,17 +205,17 @@ then
         then
                 echo CRITICAL! The following cages have abnormal status : `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Failed") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                exit 2
+		exit 2
         else
                 if [ `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Degraded") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out|wc -l` -gt 0 ]
                 then
                         echo WARNING! The following cages have abnormal status : `awk '{ if ($0 ~ "------Cage") cage=$5; if ($0 ~ "Degraded") print cage" "$0}' $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                        exit 1
+			exit 1
                 else
                         echo OK : All cages have normal status
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-                        exit 0
+			exit 0
                 fi
         fi
 fi
@@ -468,6 +471,7 @@ then
 		exit 0
         fi
 
+#	if [ `grep -c -i off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
 	if [ `grep -c off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
 	then
 		echo WARNING! There are Disable QOS Rules Contact 3PAR support
@@ -479,34 +483,6 @@ then
 		exit 0
 	fi
 fi
-
-if [$COMMAND == "check_qos_cfg" ]
-then
-
-        $CONNECTCOMMAND showqos -nohdtot -csvtable > $TMPDIR/3par_vvset_$COMMAND.$INSERV.out
-        $CONNECTCOMMAND showvv -nohdtot -csvtable > $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
-
-        if [ $? -gt 0 ]
-        then
-                echo Could not connect to InServ $INSERV
-                exit 3
-        fi
-
-        while read line
-         do
-          egrep  $line $TMPDIR/3par_vvset_$COMMAND.$INSERV.out >> a.txt
-            if [ `echo $?` -eq 0 ]
-             then
-                 echo "VV:$line are Enabled VV Set's and QoS" >/dev/null 2>&1
-
-             else
-                 echo "WARNING! VV:$line Disabled VV Set and Qos"
-           fi
-
-        done < $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
-
-rm -f $TMPDIR/3par_vvset_$COMMAND.$INSERV.out
-rm -f $TMPDIR/3par_vvlist_$COMMAND.$INSERV.out
 
 if [ $COMMAND == "check_cap_iops" ]
 then
@@ -520,7 +496,7 @@ then
         if [ `tail -1 $TMPDIR/3par_$COMMAND.$INSERV.out` = "No QOS Rules listed" ]
         then
                 echo No QOS Rules
-        #       rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
                 exit 0
         fi
 
@@ -528,25 +504,62 @@ then
 	MAXIOPS=550000
 #	USEDCAPPCIOPS=`expr 100 \- \( \( $MAXIOPS \* 100 \) \/ $TOTALIOPS \)`
 #	USEDCAPPCIOPS=`expr \( $TOTALIOPS \/ $MAXIOPS \) \* 100`
-	USEDCAPPCIOPS=`(echo "scale=3; ($TOTALIOPS/$MAXIOPS)*100" | bc)`
+# 	USEDCAPPCIOPS=`(echo "scale=3; ($TOTALIOPS/$MAXIOPS)*100" | bc)`
+ 	USEDCAPPCIOPS_1=`(echo "scale=1; ($TOTALIOPS/$MAXIOPS)*100" | bc)`
+	USEDCAPPCIOPS_2=`(echo $USEDCAPPCIOPS_1 | awk '{printf("%d",$iops + 0.5)}')`
 
-	if [ $USEDCAPPCIOPS -ge $PCCRITICALIOPS ]
+# 	echo  $USEDCAPPCIOPS_2
+	
+
+	if [ $USEDCAPPCIOPS_2 -ge $PCCRITICALIOPS ]
 	then
-		echo CRITICAL! Used IOPS capacity = $USEDCAPPCIOPS\% \( \> $PCCRITICALIOPS\% \)
+		echo CRITICAL! Used IOPS capacity = $USEDCAPPCIOPS_2\% \( \> $PCCRITICALIOPS\% \)
 		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 2
 	else
 	
-		if [ $USEDCAPPCIOPS -ge $PCWARNINGIOPS ]
+		if [ $USEDCAPPCIOPS_2 -ge $PCWARNINGIOPS ]
 		then
-			echo WARNING! Used IOPS capacity $USEDCAPPCIOPS\% \( \> $PCWARNINGIOPS\% \)
+			echo WARNING! Used IOPS capacity $USEDCAPPCIOPS_2\% \( \> $PCWARNINGIOPS\% \)
 			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 			exit 1
 
 		else
-			echo OK : Used IOPS capacity $USEDCAPPCIOPS\%
+			echo OK : Used IOPS capacity $USEDCAPPCIOPS_2\%
 			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 			exit 0
 		fi
+	fi
+fi
+
+if [ $COMMAND == "check_qos_cfg" ]
+
+ng_vv=vvset-config-error-`date +"%Y-%m%d-%H"`.out
+volume_list=vvlist-`date +"%Y-%m%d-%H"`.out
+vvset_list=vvsetlist-`date +"%Y-%m%d-%H"`.out
+
+then
+
+	$CONNECTCOMMAND showvvset -nohdtot -csvtable | awk -F "," '{print $3}' | sort > $TMPDIR/$vvset_list 
+	$CONNECTCOMMAND showvv -nohdtot -csvtable | egrep "tpvv,base" | awk -F "," '{print $2}' | sort > $TMPDIR/$volume_list
+
+	if [ $? -gt 0 ]
+	then
+		echo Could not connect to InServ $INSERV
+		exit 3
+	fi
+
+	diff $TMPDIR/$volume_list $TMPDIR/$vvset_list | grep "osv-"  | sed 's/<//g' > $TMPDIR/$ng_vv
+
+	if [ -s $TMPDIR/$ng_vv ]
+	then
+		while read line 
+			do
+			echo "WARNING! VV:$line Disabled VV Set"
+			done < $TMPDIR/$ng_vv
+			exit 1
+	else
+		echo "All VVs are Enabled VV Set"
+		exit 0
 	fi
 fi
