@@ -29,6 +29,9 @@
 #                       Degraded ->     	Warning
 #                       Failed ->      	 	Critical
 #
+#	check_node_count : Check status of controller nodes
+#                          Num. of nodes are lower than specified -> Critical
+#
 #	check_ld :	Check status of logical disks
 #                       Degraded ->     	Warning
 #                       Failed ->       	Critical
@@ -84,6 +87,7 @@ fi
 INSERV=$1
 USERNAME=$2
 COMMAND=$3
+COUNT=$4
 TMPDIR=/tmp
 
 PCCRITICALFC=90
@@ -161,6 +165,27 @@ then
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 			exit 0
                 fi
+        fi
+fi
+
+if [ $COMMAND == "check_node_count" ]
+then
+        $CONNECTCOMMAND shownode -nohdtot > $TMPDIR/3par_$COMMAND.$INSERV.out
+        if [ $? -gt 0 ]
+        then
+                echo Could not connect to InServ $INSERV
+                exit 3
+        fi
+
+        if [ `cat $TMPDIR/3par_$COMMAND.$INSERV.out|wc -l` -lt $COUNT ]
+        then
+                echo CRITICAL - Number of nodes less than specified
+                rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                exit 2
+        else
+                        echo OK : All nodes are detected
+                        rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
+                        exit 0
         fi
 fi
 
