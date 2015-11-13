@@ -6,21 +6,22 @@
 # Last update 2014/04/25 kzishikawa07@gmail.com Support InForm3.1.2 & Add check_ssd
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
 # Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
-# Last update 2014/07/08 kzishikawa07@gmail.com Update check_qos_cfg check_node_ps check_cag_ps 
+# Last update 2014/07/08 kzishikawa07@gmail.com Update check_qos_cfg check_node_ps check_cag_ps
 #			 fork check_ps
 #			             |-check_node_ps
 #			             |-check_cage_ps
+# last update 2015/11/13 kzishikawa07@gmail.com Rename check_3par to check_3par.sh
 #
-# This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability, 
-# non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to 
-# customer's 'use of the script including lost data, lost profits, or any direct or indirect, incidental, special, or 
+# This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability,
+# non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to
+# customer's 'use of the script including lost data, lost profits, or any direct or indirect, incidental, special, or
 # consequential damages arising there from.
 # In addition, 3PAR reserves the right not to perform fixes or updates to this script
 #
 #
 # Usage : check_3par InServ Username Command
 #
-# Supported commands 
+# Supported commands
 #	check_pd : 	Check status of physical disks
 #			Degraded -> 		Warning
 #			Failed -> 		Critical
@@ -48,11 +49,11 @@
 #                       >= $PCWARNINGFC ->     	Warning
 #                       >= $PCCRITICALFC ->     Critical
 #
-#	check_cap_nl : Check used NL capacity 
+#	check_cap_nl : Check used NL capacity
 #                       >= $PCWARNINGNL ->      Warning
 #                       >= $PCCRITICALNL ->     Critical
 #
-#	check_cap_ssd : Check used SSD capacity 
+#	check_cap_ssd : Check used SSD capacity
 #                       >= $PCWARNINGSSD ->      Warning
 #                       >= $PCCRITICALSSD ->     Critical
 #
@@ -67,13 +68,13 @@
 #	check_qos : Check QOS Rules
 #		 	off ->			Warning
 #
-#	check_qos_cfg : Check QOS_Cfg 
+#	check_qos_cfg : Check QOS_Cfg
 #		 	off ->			Warning
 #
 #	check_cap_iops : Check used IOPS capacity
 #                       >= $PCWARNINGIOPS ->      Warning
 #                       >= $PCCRITICALIOPS ->     Critical
-			
+
 
 if [ "$1" == "" ] || [ $2 == "" ] || [ $3 == "" ]
 then
@@ -124,7 +125,7 @@ then
 		exit 2
 	else
 		if [ `grep -c degraded $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
-		then	
+		then
 	        	echo WARNING! The following PDs have abnormal status : `grep -v normal $TMPDIR/3par_$COMMAND.$INSERV.out | tr -d '\n'`
 			rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 			exit 1
@@ -170,7 +171,7 @@ then
         if [ $? -gt 0 ]
         then
                 echo Could not connect to InServ $INSERV
-                exit 3 
+                exit 3
         fi
 
         if [ `grep -c -i failed $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
@@ -183,7 +184,7 @@ then
                 then
                         echo WARNING! The following nodes have abnormal status : `grep -i degraded $TMPDIR/3par_$COMMAND.$INSERV.out | tr -s " " | tr -d '\n'`
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
-			exit 1	
+			exit 1
                 else
                         echo OK : All nodes have normal status
                         rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
@@ -359,7 +360,7 @@ then
 
 	if [ $USEDCAPPCFC -ge $PCCRITICALFC ]
         then
-                echo CRITICAL! Used FC capacity = $USEDCAPPCFC\% \( \> $PCCRITICALFC\% \) 
+                echo CRITICAL! Used FC capacity = $USEDCAPPCFC\% \( \> $PCCRITICALFC\% \)
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 2
         else
@@ -466,13 +467,13 @@ then
 
         if [ `tail -1 $TMPDIR/3par_$COMMAND.$INSERV.out` = "No QOS Rules listed" ]
         then
-                echo No QOS Rules 
+                echo No QOS Rules
                 rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 0
         fi
 
-#	if [ `grep -c -i off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
-	if [ `grep -c off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ] 	
+#	if [ `grep -c -i off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
+	if [ `grep -c off $TMPDIR/3par_$COMMAND.$INSERV.out` -gt 0 ]
 	then
 		echo WARNING! There are Disable QOS Rules Contact 3PAR support
 		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
@@ -492,7 +493,7 @@ vvset_list=vvsetlist-`date +"%Y-%m%d-%H"`.out
 
 then
 
-	$CONNECTCOMMAND showvvset -nohdtot -csvtable | awk -F "," '{print $3}' | sort > $TMPDIR/$vvset_list 
+	$CONNECTCOMMAND showvvset -nohdtot -csvtable | awk -F "," '{print $3}' | sort > $TMPDIR/$vvset_list
 	$CONNECTCOMMAND showvv -nohdtot -csvtable | egrep "tpvv,base" | awk -F "," '{print $2}' | sort > $TMPDIR/$volume_list
 
 	if [ $? -gt 0 ]
@@ -505,7 +506,7 @@ then
 
 	if [ -s $TMPDIR/$ng_vv ]
 	then
-		while read line 
+		while read line
 			do
 			echo "WARNING! VV:$line Disabled VV Set"
 			done < $TMPDIR/$ng_vv
@@ -541,7 +542,7 @@ then
 	USEDCAPPCIOPS_2=`(echo $USEDCAPPCIOPS_1 | awk '{printf("%d",$iops + 0.5)}')`
 
 # 	echo  $USEDCAPPCIOPS_2
-	
+
 
 	if [ $USEDCAPPCIOPS_2 -ge $PCCRITICALIOPS ]
 	then
@@ -549,7 +550,7 @@ then
 		rm -f $TMPDIR/3par_$COMMAND.$INSERV.out
 		exit 2
 	else
-	
+
 		if [ $USEDCAPPCIOPS_2 -ge $PCWARNINGIOPS ]
 		then
 			echo WARNING! Used IOPS capacity $USEDCAPPCIOPS_2\% \( \> $PCWARNINGIOPS\% \)
