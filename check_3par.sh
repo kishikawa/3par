@@ -99,7 +99,8 @@ PCWARNINGIOPS=70
 
 # To connect using the 3PAR CLI, uncomment the following line
 ## CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
-CONNECTCOMMAND="/opt/3PAR/inform_cli_3.1.2/bin/cli -sys $INSERV -pwf $USERNAME"
+## CONNECTCOMMAND="/opt/3PAR/inform_cli_3.1.2/bin/cli -sys $INSERV -pwf $USERNAME"
+CONNECTCOMMAND="/opt/hpe_3par_cli/bin/cli -sys $INSERV -pwf $USERNAME"
 # Note : connecting using the CLI requires creating password files (.pwf)
 
 # To connect using SSH. uncomment the following line
