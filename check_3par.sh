@@ -7,7 +7,7 @@
 # Last update 2014/05/01 kzishikawa07@gmail.com Add check_qos
 # Last update 2014/05/07 kzishikawa07@gmail.com Add check_cap_iops
 # Last update 2014/07/08 kzishikawa07@gmail.com Update check_qos_cfg check_node_ps check_cag_ps
-#			 fork check_ps
+#			 Split check_ps
 #			             |-check_node_ps
 #			             |-check_cage_ps
 # Last update 2015/11/13 kzishikawa07@gmail.com Rename check_3par to check_3par.sh
