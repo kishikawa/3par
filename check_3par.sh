@@ -10,7 +10,8 @@
 #			 fork check_ps
 #			             |-check_node_ps
 #			             |-check_cage_ps
-# last update 2015/11/13 kzishikawa07@gmail.com Rename check_3par to check_3par.sh
+# Last update 2015/11/13 kzishikawa07@gmail.com Rename check_3par to check_3par.sh
+# Last update 2018/02/22 kzishikawa07@gmail.com Suuport 3PAR OS 3.3.1, Minor Bug Fix
 #
 # This script is provided "as is" without warranty of any kind and 3PAR specifically disclaims all implied warranties of merchantability,
 # non-infringement and fitness for a particular purpose. In no event shall 3PAR have any liability arising out of or related to
@@ -75,10 +76,9 @@
 #                       >= $PCWARNINGIOPS ->      Warning
 #                       >= $PCCRITICALIOPS ->     Critical
 
-
 if [ "$1" == "" ] || [ $2 == "" ] || [ $3 == "" ]
 then
-	echo "Invalid usage : check_3par InServ Username/passwordfile Command"
+	echo Invalid usage : check_3par InServ Username/passwordfile Command
 	exit 3
 fi
 
@@ -95,7 +95,6 @@ PCCRITICALSSD=90
 PCWARNINGSSD=80
 PCCRITICALIOPS=90
 PCWARNINGIOPS=70
-
 
 ## To connect using the 3PAR CLI, uncomment the following line
 # CONNECTCOMMAND="/opt/3PAR/inform_cli_2.3.1/bin/cli -sys $INSERV -pwf $USERNAME"
@@ -342,7 +341,6 @@ then
                 fi
         fi
 fi
-
 
 if [ $COMMAND == "check_cap_fc" ]
 then
